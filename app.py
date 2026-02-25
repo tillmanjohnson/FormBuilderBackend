@@ -10,11 +10,11 @@ CORS(app)
 
 load_dotenv()
 mongo_connection = os.environ.get("mongo_connection")
-client = MongoClient(mongo_connection,
+mongodb = MongoClient(mongo_connection,
                      tlsCAFile=certifi.where()
                      )
 
-db = client["FormBuilderDB"]
+db = mongodb["FormBuilderDB"]
 messages = db["messages"]
 
 @app.route("/")
@@ -36,7 +36,7 @@ def submit_text():
 @app.route("/test-db")
 def test_db():
     try:
-        client.admin.command('ping')
+        mongodb.admin.command('ping')
         return jsonify({"status": "Connected to MongoDB"})
     except Exception as e:
         return jsonify({"status": "Connection failed", "error": str(e)})
