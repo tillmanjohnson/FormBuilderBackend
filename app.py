@@ -104,6 +104,7 @@ def dashboard():
 
 #EXISTING/TEST ROUTES
 @app.route("/submit", methods=["POST"])
+@jwt_required()
 def submit_text():
     data = request.json
 
