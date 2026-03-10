@@ -144,6 +144,20 @@ def submit_form():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/forms", methods=["GET"])
+@jwt_required()
+def get_forms():
+    try:
+        all_forms = list(forms.find())
+
+        for form in all_forms:
+            form["_id"] = str(form["_id"])
+
+        return jsonify(all_forms), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
