@@ -145,5 +145,17 @@ def submit_form():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/forms", methods=["GET"])
+###@jwt_required()
+def get_forms():
+    results = []
+
+    for form in forms.find():
+        form["_id"] = str(form["_id"])
+        results.append(form)
+
+    return jsonify(results)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
