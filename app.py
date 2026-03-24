@@ -14,6 +14,7 @@ import certifi
 import os
 from dotenv import load_dotenv
 from flask_jwt_extended import unset_jwt_cookies
+import json
 
 app = Flask(__name__)
 CORS(
@@ -99,10 +100,10 @@ def login():
     if not user or not bcrypt.check_password_hash(user["password"], data["password"]):
         return jsonify({"msg": "Bad credentials"}), 401
 
-    access_token = create_access_token(identity={
+    access_token = create_access_token(identity=json.dumps({
         "user_id": str(user["_id"]),
         "organization": user["organization"]
-    })
+    }))
 
     response = jsonify({"msg": "Login successful"})
     set_access_cookies(response, access_token)
@@ -181,10 +182,11 @@ def submit_form():
 @jwt_required()
 def get_forms():
     try:
-        identity = get_jwt_identity()
+        identity = json.loads(get_jwt_identity())  # parse the JSON string back to dict
+        org_name = identity["organization"]
 
         org_forms = list(forms.find({
-            "organization": identity["organization"]
+            "organization": org_name
         }))
 
         for form in org_forms:
