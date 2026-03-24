@@ -50,18 +50,33 @@ def home():
 def register():
     data = request.json
 
-    if not data or "email" not in data or "password" not in data:
-        return jsonify({"error": "Email and password required"}), 400
+    if not data or "email" not in data or "password" not in data or "organization" not in data:
+        return jsonify({"error": "Email, password, and organization required"}), 400
+    email = data["email"].strip().lower()
+    password = data["password"]
+    organization = data["organization"].strip().lower()
 
     # Check if user already exists
-    if users.find_one({"email": data["email"]}):
+    if users.find_one({"email": email}):
         return jsonify({"error": "User already exists"}), 400
 
-    hashed_pw = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
+    if users.find_one({"organization": organization}):
+        return jsonify({"error": "Organization already has an admin"}), 400
 
-    users.insert_one({"email": data["email"], "password": hashed_pw})
+    hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
 
-    return jsonify({"msg": "User created"}), 201
+    users.insert_one({
+        "email": email,
+        "password": hashed_pw,
+        "organization": organization,
+        "role": "admin"
+    })
+
+    return jsonify({
+        "msg": "User created",
+        "email": email,
+        "Organization": organization
+    }), 201
 
 
 # LOGIN ENDPOINT
@@ -71,13 +86,17 @@ def login():
 
     if not data or "email" not in data or "password" not in data:
         return jsonify({"error": "Email and password required"}), 400
+    email = data["email"].strip().lower()
 
-    user = users.find_one({"email": data["email"]})
+    user = users.find_one({"email": email})
 
     if not user or not bcrypt.check_password_hash(user["password"], data["password"]):
         return jsonify({"msg": "Bad credentials"}), 401
 
-    access_token = create_access_token(identity=str(user["_id"]))
+    access_token = create_access_token(identity={
+        "user_id": str(user["_id"]),
+        "organization": user["organization"]
+    })
 
     response = jsonify({"msg": "Login successful"})
     set_access_cookies(response, access_token)
@@ -89,14 +108,17 @@ def login():
 @app.route("/dashboard")
 @jwt_required()
 def dashboard():
-    user_id = get_jwt_identity()
+    identity = get_jwt_identity()
 
-    user = users.find_one({"_id": ObjectId(user_id)})
+    user = users.find_one({"_id": ObjectId(identity["user_id"])})
 
     if not user:
         return jsonify({"msg": "User not found"}), 404
 
-    return jsonify({"msg": f"Welcome {user['email']}"})
+    return jsonify({
+        "msg": f"Welcome {user['email']}",
+        "organization": identity["organization"]
+    })
 
 
 # EXISTING/TEST ROUTES
@@ -104,11 +126,15 @@ def dashboard():
 @jwt_required()
 def submit_text():
     data = request.json
+    identity = get_jwt_identity()
 
     if not data or "text" not in data:
         return jsonify({"error": "No text provided"}), 400
 
-    messages.insert_one({"text": data["text"]})
+    messages.insert_one({
+        "text": data["text"],
+        "organization": identity["organization"]
+    })
 
     return jsonify({"message": "Saved successfully!"})
 
@@ -123,11 +149,11 @@ def test_db():
 
 
 @app.route("/submit-form", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def submit_form():
     try:
         data = request.json
-        # user_id = get_jwt_identity()
+        identity = get_jwt_identity()
 
         if not data or "answers" not in data:
             return jsonify({"error": "Invalid form submission"}), 400
@@ -135,6 +161,7 @@ def submit_form():
         document = {
             "formId": data.get("formId", "unknown"),
             "answers": data["answers"],
+            "organization": identity["organization"]
         }
 
         forms.insert_one(document)
@@ -148,12 +175,16 @@ def submit_form():
 @jwt_required()
 def get_forms():
     try:
-        all_forms = list(forms.find())
+        identity = get_jwt_identity()
 
-        for form in all_forms:
+        org_forms = list(forms.find({
+            "organization": identity["organization"]
+        }))
+
+        for form in org_forms:
             form["_id"] = str(form["_id"])
 
-        return jsonify(all_forms), 200
+        return jsonify(org_forms), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
