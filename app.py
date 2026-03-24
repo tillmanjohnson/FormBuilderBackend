@@ -13,15 +13,21 @@ from bson import ObjectId
 import certifi
 import os
 from dotenv import load_dotenv
+from flask_jwt_extended import unset_jwt_cookies
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(
+    app,
+    supports_credentials=True,
+    origins=["http://localhost:5173"]
+)
 
 # CONFIG
 app.config["JWT_SECRET_KEY"] = "super-secret-key"
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_COOKIE_SECURE"] = False
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False
+app.config["JWT_COOKIE_SAMESITE"] = "Lax"
 
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
@@ -189,6 +195,17 @@ def get_forms():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/check-auth", methods=["GET"])
+@jwt_required()
+def check_auth():
+    user_id = get_jwt_identity()
+    return jsonify({"logged_in": True, "user_id": user_id}), 200
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    response = jsonify({"msg": "Logout successful"})
+    unset_jwt_cookies(response)
+    return response
 
 if __name__ == "__main__":
     app.run(debug=True)
