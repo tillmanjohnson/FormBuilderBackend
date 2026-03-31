@@ -42,6 +42,7 @@ db = mongodb["FormBuilderDB"]
 messages = db["messages"]
 users = db["users"]
 forms = db["forms"]
+built_forms = db["built-forms"]
 
 # ---------------- ROUTES ---------------- #
 
@@ -99,7 +100,9 @@ def login():
         "organization": user["organization"]
     }))
 
-    response = jsonify({"msg": "Login successful"})
+    response = jsonify({
+        "msg": "Login successful",
+        "organization": user["organization"]})
     set_access_cookies(response, access_token)
 
     return response
@@ -135,7 +138,7 @@ def submit_form():
 
         document = {
             "formId": data.get("formId", "unknown"),
-            "answers": data["answers"],
+            "responses": data["responses"],
             "organization": identity["organization"]
         }
 
@@ -147,7 +150,7 @@ def submit_form():
         return jsonify({"error": str(e)}), 500
 
 
-# GET FORMS
+# GET FORM SUBMISSIONS
 @app.route("/forms", methods=["GET"])
 @jwt_required()
 def get_forms():
@@ -177,11 +180,11 @@ def update_form(id):
         org_name = identity["organization"]
 
         formId = data.get("formId")
-        answers = data.get("answers", {})  
+        responses = data.get("responses", {})
 
         result = forms.update_one(
             {"_id": ObjectId(id), "organization": org_name},
-            {"$set": {"formId": formId, "answers": answers}}
+            {"$set": {"formId": formId, "responses": responses}}
         )
 
         if result.matched_count == 0:
@@ -197,7 +200,11 @@ def update_form(id):
 @app.route("/check-auth", methods=["GET"])
 @jwt_required()
 def check_auth():
-    return jsonify({"logged_in": True}), 200
+    identity = json.loads(get_jwt_identity())
+    return jsonify({
+        "logged_in": True,
+        "organization": identity["organization"]
+    }), 200
 
 
 # LOGOUT
@@ -206,6 +213,26 @@ def logout():
     response = jsonify({"msg": "Logout successful"})
     unset_jwt_cookies(response)
     return response
+
+# GET BUILT-FORMS
+@app.route("/built-forms", methods=["GET"])
+@jwt_required()
+def get_built_forms():
+    try:
+        identity = json.loads(get_jwt_identity())
+        org_name = identity["organization"]
+
+        org_forms = list(built_forms.find({
+            "organization": org_name
+        }))
+
+        for form in org_forms:
+            form["_id"] = str(form["_id"])
+
+        return jsonify(org_forms), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
