@@ -234,6 +234,30 @@ def get_built_forms():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+#two identical api paths might cause issues
+@app.route("/built-forms", methods=["GET"])
+def get_built_forms():
+    built_forms_collection = db["built-forms"]
+    results = []
+
+    for form in built_forms_collection.find():
+        form["_id"] = str(form["_id"])  # convert ObjectId to string
+        results.append(form)
+
+    return jsonify(results)
+
+
+@app.route("/forms", methods=["GET"])
+###@jwt_required()
+def get_forms():
+    results = []
+
+    for form in forms.find():
+        form["_id"] = str(form["_id"])
+        results.append(form)
+
+    return jsonify(results)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
