@@ -145,6 +145,18 @@ def submit_form():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/built-forms", methods=["GET"])
+def get_built_forms():
+    built_forms_collection = db["built-forms"]
+    results = []
+
+    for form in built_forms_collection.find():
+        form["_id"] = str(form["_id"])  # convert ObjectId to string
+        results.append(form)
+
+    return jsonify(results)
+
+
 @app.route("/forms", methods=["GET"])
 ###@jwt_required()
 def get_forms():
