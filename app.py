@@ -214,10 +214,10 @@ def logout():
     unset_jwt_cookies(response)
     return response
 
-# GET BUILT-FORMS
-@app.route("/built-forms", methods=["GET"])
+# GET BUILT-FORMS LIST (for forms list on landing page upon login)
+@app.route("/built-forms-list", methods=["GET"])
 @jwt_required()
-def get_built_forms():
+def get_built_forms_list():
     try:
         identity = json.loads(get_jwt_identity())
         org_name = identity["organization"]
@@ -235,6 +235,7 @@ def get_built_forms():
         return jsonify({"error": str(e)}), 500
 
 #two identical api paths might cause issues
+#okay changed previous /built-forms to /built-forms-list
 @app.route("/built-forms", methods=["GET"])
 def get_built_forms():
     built_forms_collection = db["built-forms"]
@@ -245,19 +246,6 @@ def get_built_forms():
         results.append(form)
 
     return jsonify(results)
-
-
-@app.route("/forms", methods=["GET"])
-###@jwt_required()
-def get_forms():
-    results = []
-
-    for form in forms.find():
-        form["_id"] = str(form["_id"])
-        results.append(form)
-
-    return jsonify(results)
-
 
 if __name__ == "__main__":
     app.run(debug=True)
