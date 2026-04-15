@@ -17,14 +17,20 @@ from dotenv import load_dotenv
 import json
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=["https://formbuilderfrontend-j9an.onrender.com"])
+CORS(app, supports_credentials=True, origins=["https://formbuilderfrontend-j9an.onrender.com", "http://localhost:5173", "http://127.0.0.1:5000"])
 
 # CONFIG
 app.config["JWT_SECRET_KEY"] = "super-secret-key"
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
-app.config["JWT_COOKIE_SECURE"] = True
+# app.config["JWT_COOKIE_SECURE"] = True
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False
-app.config["JWT_COOKIE_SAMESITE"] = "None"
+# app.config["JWT_COOKIE_SAMESITE"] = "None"
+
+# Check if we are running on the live server or locally
+is_production = os.environ.get("FLASK_ENV") == "production"
+
+app.config["JWT_COOKIE_SECURE"] = is_production
+app.config["JWT_COOKIE_SAMESITE"] = "None" if is_production else "Lax"
 
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
