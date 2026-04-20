@@ -112,7 +112,9 @@ def login():
     )
 
     response = jsonify(
-        {"msg": "Login successful", "organization": user["organization"]}
+        {"msg": "Login successful",
+         "organization": user["organization"],
+         "access_token": access_token } # ← ADD THIS}
     )
     set_access_cookies(response, access_token)
 
