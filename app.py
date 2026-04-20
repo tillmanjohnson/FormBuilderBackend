@@ -21,7 +21,7 @@ CORS(app, supports_credentials=True, origins=["https://formbuilderfrontend-j9an.
 
 # CONFIG
 app.config["JWT_SECRET_KEY"] = "super-secret-key"
-app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]
 # app.config["JWT_COOKIE_SECURE"] = True
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 # app.config["JWT_COOKIE_SAMESITE"] = "None"
