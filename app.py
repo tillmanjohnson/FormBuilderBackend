@@ -139,12 +139,24 @@ def dashboard():
 
 # route for creating a built form, this is where the frontend will send the form data to be stored in the db
 @app.route("/built-forms", methods=["POST"])
-# @jwt_required() < do this later i rekkon
+@jwt_required()
 def create_built_form():
     try:
         data = request.json
         if not data or "id" not in data or "fields" not in data:
             return jsonify({"error": "Invalid form data"}), 400
+
+        # 2. GET IDENTITY FROM SECURE TOKEN
+        identity = json.loads(get_jwt_identity())
+
+        # 3. FORCE THE ORGANIZATION TO MATCH THE LOGGED-IN ADMIN
+        data["organization"] = identity["organization"]
+
+        # --- NEW: UNIQUENESS CHECK ---
+        # Check if a form with this exact generated ID already exists
+        existing_form = built_forms.find_one({"id": data["id"]})
+        if existing_form:
+            return jsonify({"error": "A form with this title already exists. Please choose a different title."}), 409
 
         built_forms.insert_one(data)
         return jsonify({"message": "Form created successfully"}), 201
